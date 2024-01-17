@@ -16,13 +16,35 @@ def login():
         messagebox.showerror('Pyton Error','Du måste ange ett användarnamn för att kunna logga in.')
     elif password == "":
         messagebox.showerror('Python Error','Vänligen ange ett lösenord.')
-    else: 
-        print("Inloggad!!")
-        root.destroy()
+    else:
+        #Verifiera att kunden finns i db.
+        verify_cred()
+        
     return
     
+def verify_cred():
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="password",
+        port=1000,
+        database="de23db"
+    )
     
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+    user_data = cursor.fetchone()
     
+    if user_data:
+        stored_password = user_data[2]
+        if password == stored_password:
+            root.destroy()
+            wall()
+        else: messagebox.showerror("Login Error", "Fel lösenord")
+    else: messagebox.showwarning("Not found", "Användaren finns inte")
+
+    conn.close()
 
 def login_win():
     global login_username_entry, login_password_entry, root
@@ -109,8 +131,22 @@ def main():
     # Button
     login_button = tk.Button(m_root, text="Skicka in uppgifter", command=user_cred)
     login_button.grid(row=9, column=0, pady=10)
-    return
 
+    # if surname_entry == "":
+    #     messagebox.showerror('Python Error', 'Du måste fylla i alla fält.')
+    # elif lastname_entry == "":
+    #     messagebox.showerror('Python Error', 'Du måste fylla i alla fält.')
+    # elif address_entry == "":
+    #     messagebox.showerror('Python Error', 'Du måste fylla i alla fält.')
+    # elif phone_entry == "":
+    #     messagebox.showerror('Python Error', 'Du måste fylla i alla fält.')
+    # elif addUsername_entry == "":
+    #     messagebox.showerror('Python Error', 'Du måste fylla i alla fält.')
+    # elif addPwd_entry =="":
+    #     messagebox.showerror('Python Error', 'Du måste fylla i alla fält.')
+    # else:
+    #     return
+    return
 
 def user_cred():
     global surname, lastname, address, phone, username, password
@@ -143,17 +179,34 @@ def insert_to_db():
 
     cursor.execute("CREATE DATABASE IF NOT EXISTS de23db")
 
-    cursor.execute("CREATE TABLE IF NOT EXISTS users (id INT PRIMARY KEY, username VARCHAR(64), password VARCHAR(64))")
-    cursor.execute("CREATE TABLE IF NOT EXISTS user_info (id INT PRIMARY KEY, surname VARCHAR(64), lastname VARCHAR(64), address VARCHAR(64), phone VARCHAR(64))")
+    cursor.execute("CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(64), password VARCHAR(64))")
+    cursor.execute("CREATE TABLE IF NOT EXISTS user_info (id INT AUTO_INCREMENT PRIMARY KEY, surname VARCHAR(64), lastname VARCHAR(64), address VARCHAR(64), phone VARCHAR(64))")
 
     cursor.execute("SHOW TABLES")
+    cursor.fetchall()
 
-    for table in cursor:
-        print(table)
+    #cursor.execute(f"INSERT INTO users ( username, password) VALUES ('{username}', '{password}')")
+    #cursor.execute(f"INSERT INTO user_info ( surname, lastname, address, phone) VALUES ('{surname}', '{lastname}', '{address}', '{phone}')")
 
-    cursor.execute(f"INSERT INTO users (id, username, password) VALUES ('2','{username}', '{password}') ")
+     # För att slippa bli SQL injekterad.
+    user_query = "INSERT INTO users (username, password) VALUES (%s, %s)"
+    user_info_query = "INSERT INTO user_info (surname, lastname, address, phone) VALUES (%s, %s, %s, %s)"
+
+    cursor.execute(user_query, (username, password))
+    cursor.execute(user_info_query, (surname, lastname, address, phone))
 
     conn.commit()
+
+def wall():
+    w_root = tk.Tk()
+    w_root.geometry("500x500")
+    w_root.title("Väggen")    
+
+    w_title = tk.Label(w_root, text="DE23 Väggen", font=("Arial", 20))
+    w_title.pack(padx=10, pady=10)
+
+    
+
 
 login_win()
 
