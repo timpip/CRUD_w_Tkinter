@@ -202,6 +202,7 @@ def insert_to_db():
     conn.commit()
 
 def my_page():
+    global w_title_entry,w_textbox
     w_root = tk.Tk()
     w_root.geometry("800x600")
     w_root.title("Min sida")
@@ -219,7 +220,7 @@ def my_page():
 
     w_title_label = tk.Label(w_root, text="Titel", font=("Arial", 12))
     w_title_label.grid(row=3, column=0,sticky="W", padx=10, pady=10)
-    #Sätter textruta
+    
     w_title_entry = tk.Entry(w_root)
     w_title_entry.grid(row=4, column=0,sticky="W",padx=20, pady=10)
 
@@ -229,17 +230,22 @@ def my_page():
     w_textbox= tk.Text(w_root, height=5, font=('Arial',12))
     w_textbox.grid(row=6, column=0,sticky="W",padx=10, pady=10,columnspan=1)
 
-    w_send_button = tk.Button(w_root, text="Skicka meddelande", command=verify_fill)
+    w_send_button = tk.Button(w_root, text="Skicka meddelande", command=the_wall)
     w_send_button.grid(row=7, column=0, sticky="W", padx=10,pady=10)
 
     w_alt_button = tk.Button(w_root, text="Ändra uppgifter", command=verify_fill)
     w_alt_button.grid(row=8,column=0,sticky="W", padx=10,pady=10)
 
-    w_quit_button = tk.Button(w_root, text="Avsluta", command=verify_fill)
+    w_quit_button = tk.Button(w_root, text="Avsluta", command=w_root.destroy)
     w_quit_button.grid(row=9, column=0,sticky="E", padx=10,pady=10)
     return
 
 
+def the_wall():
+     title = w_title_entry.get()
+     textbox_msg = w_textbox.get("1.0", tk.END)
+     print(title)
+     print(textbox_msg)
 
 if __name__ == '__main__':
     login_win()
