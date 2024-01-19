@@ -40,7 +40,7 @@ def verify_cred():
         stored_password = user_data[2]
         if password == stored_password:
             root.destroy()
-            wall()
+            my_page()
         else: messagebox.showerror("Login Error", "Fel lösenord")
     else: messagebox.showwarning("Not found", "Användaren finns inte")
 
@@ -91,7 +91,6 @@ def main():
     title_label = tk.Label(m_root, text="Fyll i din information", font=("Arial",18))
     title_label.grid(row=0, column=0, sticky="w", padx=10, pady=5)
 
-   
     surname_label = tk.Label(m_root, text="Förnamn:")
     surname_label.grid(row=1, column=0, sticky="w", padx=10, pady=5)
 
@@ -122,30 +121,35 @@ def main():
     addUsername_entry = tk.Entry(m_root)
     addUsername_entry.grid(row=2, column=1, padx=10, pady=5)
 
-    addPwd_label = tk.Label(m_root, text="välj lösenord:")
+    addPwd_label = tk.Label(m_root, text="Välj lösenord:")
     addPwd_label.grid(row=3, column=1, sticky="w", padx=10, pady=5)
 
     addPwd_entry = tk.Entry(m_root, show="*")
     addPwd_entry.grid(row=4, column=1, padx=10, pady=5)
 
     # Button
-    login_button = tk.Button(m_root, text="Skicka in uppgifter", command=user_cred)
+    login_button = tk.Button(m_root, text="Skicka in uppgifter", command=verify_fill)
     login_button.grid(row=9, column=0, pady=10)
 
-    # if surname_entry == "":
-    #     messagebox.showerror('Python Error', 'Du måste fylla i alla fält.')
-    # elif lastname_entry == "":
-    #     messagebox.showerror('Python Error', 'Du måste fylla i alla fält.')
-    # elif address_entry == "":
-    #     messagebox.showerror('Python Error', 'Du måste fylla i alla fält.')
-    # elif phone_entry == "":
-    #     messagebox.showerror('Python Error', 'Du måste fylla i alla fält.')
-    # elif addUsername_entry == "":
-    #     messagebox.showerror('Python Error', 'Du måste fylla i alla fält.')
-    # elif addPwd_entry =="":
-    #     messagebox.showerror('Python Error', 'Du måste fylla i alla fält.')
-    # else:
-    #     return
+    
+    return
+
+
+
+def verify_fill():
+    complete_form = [surname_entry.get()
+                    ,lastname_entry.get()
+                    ,address_entry.get()
+                    ,phone_entry.get()
+                    ,addUsername_entry.get()
+                    ,addPwd_entry.get()]
+
+    for input in complete_form:
+        if input =="":
+            messagebox.showerror("Python Error", "Du måste fylla i alla fält.")
+            return
+        else: pass
+    user_cred()
     return
 
 def user_cred():
@@ -197,16 +201,45 @@ def insert_to_db():
 
     conn.commit()
 
-def wall():
+def my_page():
     w_root = tk.Tk()
-    w_root.geometry("500x500")
-    w_root.title("Väggen")    
+    w_root.geometry("800x600")
+    w_root.title("Min sida")
 
-    w_title = tk.Label(w_root, text="DE23 Väggen", font=("Arial", 20))
-    w_title.pack(padx=10, pady=10)
-
+    buttonframe = tk.Frame(w_root)
+    buttonframe.columnconfigure(0, weight=1)
+    buttonframe.columnconfigure(1, weight=1)
     
 
+    w_title = tk.Label(w_root, text="Min sida", font=("Arial", 20))
+    w_title.grid(row=1, column=0,sticky="W",padx=10, pady=10)
 
-login_win()
+    w_label = tk.Label(w_root, text="Posta på väggen", font=("Arial", 16))
+    w_label.grid(row=2, column=0,sticky="W", padx=10, pady=10)
 
+    w_title_label = tk.Label(w_root, text="Titel", font=("Arial", 12))
+    w_title_label.grid(row=3, column=0,sticky="W", padx=10, pady=10)
+    #Sätter textruta
+    w_title_entry = tk.Entry(w_root)
+    w_title_entry.grid(row=4, column=0,sticky="W",padx=20, pady=10)
+
+    w_msg_label = tk.Label(w_root, text="Meddelande", font=("Arial", 12))
+    w_msg_label.grid(row=5, column=0,sticky="W", padx=10, pady=10)
+
+    w_textbox= tk.Text(w_root, height=5, font=('Arial',12))
+    w_textbox.grid(row=6, column=0,sticky="W",padx=10, pady=10,columnspan=1)
+
+    w_send_button = tk.Button(w_root, text="Skicka meddelande", command=verify_fill)
+    w_send_button.grid(row=7, column=0, sticky="W", padx=10,pady=10)
+
+    w_alt_button = tk.Button(w_root, text="Ändra uppgifter", command=verify_fill)
+    w_alt_button.grid(row=8,column=0,sticky="W", padx=10,pady=10)
+
+    w_quit_button = tk.Button(w_root, text="Avsluta", command=verify_fill)
+    w_quit_button.grid(row=9, column=0,sticky="E", padx=10,pady=10)
+    return
+
+
+
+if __name__ == '__main__':
+    login_win()
