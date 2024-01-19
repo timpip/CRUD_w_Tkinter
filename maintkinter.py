@@ -1,7 +1,8 @@
 import tkinter as tk
 from tkinter import messagebox
 import mysql.connector
-
+import datetime
+import time
 user_credentials = {}
 
 def login():
@@ -202,6 +203,7 @@ def insert_to_db():
     conn.commit()
 
 def my_page():
+    log_login()
     global w_title_entry,w_textbox
     w_root = tk.Tk()
     w_root.geometry("800x600")
@@ -239,6 +241,50 @@ def my_page():
     w_quit_button = tk.Button(w_root, text="Avsluta", command=w_root.destroy)
     w_quit_button.grid(row=9, column=0,sticky="E", padx=10,pady=10)
     return
+
+def log_login():
+    clock = str(datetime.datetime.now())
+    f = open('log_login.csv', 'a')
+    f.write(f"{username}, {clock}\n")
+    f.close()
+    send_log()
+
+def send_log():
+    #time.sleep(3600)
+    conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="password",
+    port=1000,
+    database = "de23db"
+    )
+    cursor = conn.cursor()
+    
+    # Create the 'log' table if it doesn't exist
+    cursor.execute("CREATE TABLE IF NOT EXISTS log (user VARCHAR(64), time VARCHAR(64))")
+    cursor.execute("SHOW TABLES")
+    cursor.fetchall()
+
+    # Open the log file
+    with open("log_login.csv", "r") as file:
+        # Iterate through each line in the log file and insert into the database
+        for line in file:
+            user, time = line.strip().split(",")  # Assuming CSV format
+
+            # Use parameterized query to prevent SQL injection
+            cursor.execute("INSERT INTO log (user, time) VALUES (%s, %s)", (user, time))
+
+    # Commit the changes
+    conn.commit()
+
+    # Close the database connection
+    cursor.close()
+    conn.close()
+
+
+
+    
+
 
 
 def the_wall():
