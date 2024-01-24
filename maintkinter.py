@@ -38,7 +38,7 @@ def verify_cred():
     user_data = cursor.fetchone()
     
     if user_data:
-        stored_password = user_data[2]
+        stored_password = user_data[1]
         if password == stored_password:
             root.destroy()
             my_page()
@@ -184,8 +184,8 @@ def insert_to_db():
 
     cursor.execute("CREATE DATABASE IF NOT EXISTS de23db")
 
-    cursor.execute("CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(64), password VARCHAR(64))")
-    cursor.execute("CREATE TABLE IF NOT EXISTS user_info (id INT AUTO_INCREMENT PRIMARY KEY, surname VARCHAR(64), lastname VARCHAR(64), address VARCHAR(64), phone VARCHAR(64))")
+    cursor.execute("CREATE TABLE IF NOT EXISTS users (username VARCHAR(64) PRIMARY KEY, password VARCHAR(64))")
+    cursor.execute("CREATE TABLE IF NOT EXISTS user_info (username VARCHAR(64) PRIMARY KEY, surname VARCHAR(64), lastname VARCHAR(64), address VARCHAR(64), phone VARCHAR(64))")
 
     cursor.execute("SHOW TABLES")
     cursor.fetchall()
@@ -195,10 +195,10 @@ def insert_to_db():
 
      # För att slippa bli SQL injekterad.
     user_query = "INSERT INTO users (username, password) VALUES (%s, %s)"
-    user_info_query = "INSERT INTO user_info (surname, lastname, address, phone) VALUES (%s, %s, %s, %s)"
+    user_info_query = "INSERT INTO user_info (username, surname, lastname, address, phone) VALUES (%s, %s, %s, %s, %s)"
 
     cursor.execute(user_query, (username, password))
-    cursor.execute(user_info_query, (surname, lastname, address, phone))
+    cursor.execute(user_info_query, (username, surname, lastname, address, phone))
 
     conn.commit()
 
@@ -235,11 +235,13 @@ def my_page():
     w_send_button = tk.Button(w_root, text="Skicka meddelande", command=the_wall)
     w_send_button.grid(row=7, column=0, sticky="W", padx=10,pady=10)
 
-    w_alt_button = tk.Button(w_root, text="Ändra uppgifter", command=verify_fill)
+    w_alt_button = tk.Button(w_root, text="Ändra uppgifter", command=change)
     w_alt_button.grid(row=8,column=0,sticky="W", padx=10,pady=10)
 
     w_quit_button = tk.Button(w_root, text="Avsluta", command=w_root.destroy)
     w_quit_button.grid(row=9, column=0,sticky="E", padx=10,pady=10)
+
+    w_root.mainloop()
     return
 
 def log_login():
@@ -248,6 +250,83 @@ def log_login():
     f.write(f"{username}, {clock}\n")
     f.close()
     send_log()
+
+
+def change():
+    global new_name, new_lastname, new_address, new_phone, c_root
+    c_root = tk.Tk()
+    c_root.geometry("800x600")
+    c_root.title("Ändra uppgifter")
+
+    c_title_label = tk.Label(c_root, text="Ändra dina personliga uppgifter", font=("Arial",18))
+    c_title_label.grid(row=0, column=0, sticky="w", padx=10, pady=5)
+
+    c_surname_label = tk.Label(c_root, text="Nytt förnamn:")
+    c_surname_label.grid(row=1, column=0, sticky="w", padx=10, pady=5)
+
+    c_surname_entry = tk.Entry(c_root)
+    c_surname_entry.grid(row=2, column=0, padx=10, pady=5)
+
+    c_lastname_label = tk.Label(c_root, text="Nytt Efternamn:")
+    c_lastname_label.grid(row=3, column=0, sticky="w", padx=10, pady=5)
+
+    c_lastname_entry = tk.Entry(c_root)
+    c_lastname_entry.grid(row=4, column=0, padx=10, pady=5)
+
+    c_address_label = tk.Label(c_root, text="Ny Adress:")
+    c_address_label.grid(row=5, column=0, sticky="w", padx=10, pady=5)
+
+    c_address_entry = tk.Entry(c_root)
+    c_address_entry.grid(row=6, column=0, padx=10, pady=5)
+
+    c_phone_label = tk.Label(c_root, text="Nytt Telefonnummer:")
+    c_phone_label.grid(row=7, column=0, sticky="w", padx=10, pady=5)
+
+    c_phone_entry = tk.Entry(c_root)
+    c_phone_entry.grid(row=8, column=0, padx=10, pady=5)
+
+    # Button
+    c_send_button = tk.Button(c_root, text="Ändra uppgifter", command=send_change)
+    c_send_button.grid(row=9, column=0, pady=10)
+
+    c_return_button = tk.Button(c_root, text="Tillbaka", command=exit) #Måste hitta ett sätt att kunna stänga change fönster utan att döda app.
+    c_return_button.grid(row=10, column=0, pady=10)
+
+    new_name = c_surname_entry.get()
+    new_lastname = c_lastname_entry.get()
+    new_address = c_address_entry.get()
+    new_phone = c_phone_entry.get()
+    return new_name, new_lastname, new_address, new_phone
+
+
+def send_change():
+    conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="password",
+    port=1000,
+    database = "de23db"
+    )
+    cursor = conn.cursor()
+    
+    if new_name != "":
+        cursor.execute("UPDATE de23db.user_info SET surname=%s WHERE username=%s", (new_name, username))
+
+    if new_lastname != "":
+        cursor.execute("UPDATE de23db.user_info SET lastname=%s WHERE username=%s", (new_lastname, username))
+
+    if new_address != "":
+        cursor.execute("UPDATE de23db.user_info SET address=%s WHERE username=%s", (new_address, username))
+
+    if new_phone != "":
+        cursor.execute("UPDATE de23db.user_info SET phone=%s WHERE username=%s", (new_phone, username))
+    
+    conn.commit()
+    c_root.destroy()
+    return
+
+
+
 
 def send_log():
     #time.sleep(3600)
@@ -282,12 +361,8 @@ def send_log():
     conn.close()
 
 
-
-    
-
-
-
 def the_wall():
+    # VÄggen är för närvarande i terminalen, informationen ska till mongoDB sen.
      title = w_title_entry.get()
      textbox_msg = w_textbox.get("1.0", tk.END)
      print(title)
