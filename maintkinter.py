@@ -3,6 +3,7 @@ from tkinter import messagebox
 import mysql.connector
 import datetime
 import time
+import pymongo
 user_credentials = {}
 
 def login():
@@ -254,6 +255,7 @@ def log_login():
 
 def change():
     global new_name, new_lastname, new_address, new_phone, c_root
+    global c_surname_entry, c_lastname_entry, c_address_entry, c_phone_entry
     c_root = tk.Tk()
     c_root.geometry("800x600")
     c_root.title("Ändra uppgifter")
@@ -288,7 +290,7 @@ def change():
     # Button
     c_send_button = tk.Button(c_root, text="Ändra uppgifter", command=send_change)
     c_send_button.grid(row=9, column=0, pady=10)
-
+    
     c_return_button = tk.Button(c_root, text="Tillbaka", command=exit) #Måste hitta ett sätt att kunna stänga change fönster utan att döda app.
     c_return_button.grid(row=10, column=0, pady=10)
 
@@ -300,6 +302,10 @@ def change():
 
 
 def send_change():
+    new_name = c_surname_entry.get()
+    new_lastname = c_lastname_entry.get()
+    new_address = c_address_entry.get()
+    new_phone = c_phone_entry.get()
     conn = mysql.connector.connect(
     host="localhost",
     user="root",
@@ -323,6 +329,7 @@ def send_change():
     
     conn.commit()
     c_root.destroy()
+    messagebox.showinfo("Information","Ändringarna gjorda!")
     return
 
 
@@ -362,11 +369,22 @@ def send_log():
 
 
 def the_wall():
+     global title, textbox_msg
     # VÄggen är för närvarande i terminalen, informationen ska till mongoDB sen.
      title = w_title_entry.get()
      textbox_msg = w_textbox.get("1.0", tk.END)
      print(title)
      print(textbox_msg)
+     insert_to_wall()
+
+def insert_to_wall():
+    myclient = pymongo.MongoClient("mongodb://localhost:27017")
+    mydb = myclient["the_wall"]
+
+    mycol = mydb["the_wall_col"]
+    mydict = {title:textbox_msg}
+
+    mycol.insert_one(mydict)
 
 if __name__ == '__main__':
     login_win()
