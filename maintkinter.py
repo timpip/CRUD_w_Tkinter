@@ -370,11 +370,11 @@ def send_log():
 
 def the_wall():
      global title, textbox_msg
-    # VÄggen är för närvarande i terminalen, informationen ska till mongoDB sen.
      title = w_title_entry.get()
      textbox_msg = w_textbox.get("1.0", tk.END)
      print(title)
      print(textbox_msg)
+
      insert_to_wall()
 
 def insert_to_wall():
@@ -385,6 +385,17 @@ def insert_to_wall():
     mydict = {title:textbox_msg}
 
     mycol.insert_one(mydict)
+    messagebox.showinfo("Meddelande", "Meddelandet skickat till väggen!")
 
+def search():
+    myclient = pymongo.MongoClient("mongodb://localhost:27017")
+    mydb = myclient["the_wall"]  
+    mycol = mydb["the_wall_col"]
+
+    #lägg till så att "X" är titel på väggen
+
+    mycol.find_one(x)
+
+    
 if __name__ == '__main__':
     login_win()
