@@ -1,13 +1,30 @@
 import tkinter as tk
 from tkinter import messagebox
+from tkinter import scrolledtext
 import mysql.connector
 import datetime
+import schedule
 import time
 import pymongo
+import os
 user_credentials = {}
 
+
+def create_db():
+    conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="password",
+    port=1000
+    )
+
+    cursor = conn.cursor()
+    cursor.execute("CREATE DATABASE IF NOT EXISTS de23db")
+    cursor.close()
+    conn.close()
+
+
 def login():
-    
     global username, password
     username = login_username_entry.get()
     password = login_password_entry.get()
@@ -35,7 +52,7 @@ def verify_cred():
     
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+    cursor.execute("SELECT * FROM users WHERE username = %s AND isActive = '1'", (username,))
     user_data = cursor.fetchone()
     
     if user_data:
@@ -49,6 +66,7 @@ def verify_cred():
     conn.close()
 
 def login_win():
+    create_db()
     global login_username_entry, login_password_entry, root
     # Create the login_win window
     root = tk.Tk()
@@ -155,13 +173,14 @@ def verify_fill():
     return
 
 def user_cred():
-    global surname, lastname, address, phone, username, password
+    global surname, lastname, address, phone, username, password, isActive
     surname = surname_entry.get()
     lastname = lastname_entry.get()
     address = address_entry.get()
     phone = phone_entry.get()
     username = addUsername_entry.get()
     password = addPwd_entry.get()
+    isActive = 1
 
     print(surname)
     print(lastname)
@@ -172,6 +191,8 @@ def user_cred():
     insert_to_db()
     m_root.destroy()
     
+
+
 def insert_to_db():
     conn = mysql.connector.connect(
     host="localhost",
@@ -185,9 +206,9 @@ def insert_to_db():
 
     cursor.execute("CREATE DATABASE IF NOT EXISTS de23db")
 
-    cursor.execute("CREATE TABLE IF NOT EXISTS users (username VARCHAR(64) PRIMARY KEY, password VARCHAR(64))")
+    cursor.execute("CREATE TABLE IF NOT EXISTS users (username VARCHAR(64) PRIMARY KEY, password VARCHAR(64), isActive INT)")#Lägg till isActive kolumn
     cursor.execute("CREATE TABLE IF NOT EXISTS user_info (username VARCHAR(64) PRIMARY KEY, surname VARCHAR(64), lastname VARCHAR(64), address VARCHAR(64), phone VARCHAR(64))")
-
+    cursor.execute("CREATE TABLE IF NOT EXISTS log (user VARCHAR(64), entry_time VARCHAR(64))")
     cursor.execute("SHOW TABLES")
     cursor.fetchall()
 
@@ -195,17 +216,17 @@ def insert_to_db():
     #cursor.execute(f"INSERT INTO user_info ( surname, lastname, address, phone) VALUES ('{surname}', '{lastname}', '{address}', '{phone}')")
 
      # För att slippa bli SQL injekterad.
-    user_query = "INSERT INTO users (username, password) VALUES (%s, %s)"
+    user_query = "INSERT INTO users (username, password, isActive) VALUES (%s, %s, %s)"
     user_info_query = "INSERT INTO user_info (username, surname, lastname, address, phone) VALUES (%s, %s, %s, %s, %s)"
 
-    cursor.execute(user_query, (username, password))
+    cursor.execute(user_query, (username, password, isActive))
     cursor.execute(user_info_query, (username, surname, lastname, address, phone))
 
     conn.commit()
 
 def my_page():
     log_login()
-    global w_title_entry,w_textbox
+    global w_title_entry,w_textbox, w_root
     w_root = tk.Tk()
     w_root.geometry("800x600")
     w_root.title("Min sida")
@@ -236,11 +257,14 @@ def my_page():
     w_send_button = tk.Button(w_root, text="Skicka meddelande", command=the_wall)
     w_send_button.grid(row=7, column=0, sticky="W", padx=10,pady=10)
 
+    w_search_button = tk.Button(w_root, text="Sök meddelande", command=search)
+    w_search_button.grid(row=8, column=0, sticky="W", padx=10,pady=10)
+
     w_alt_button = tk.Button(w_root, text="Ändra uppgifter", command=change)
-    w_alt_button.grid(row=8,column=0,sticky="W", padx=10,pady=10)
+    w_alt_button.grid(row=9,column=0,sticky="W", padx=10,pady=10)
 
     w_quit_button = tk.Button(w_root, text="Avsluta", command=w_root.destroy)
-    w_quit_button.grid(row=9, column=0,sticky="E", padx=10,pady=10)
+    w_quit_button.grid(row=10, column=0,sticky="E", padx=10,pady=10)
 
     w_root.mainloop()
     return
@@ -250,8 +274,8 @@ def log_login():
     f = open('log_login.csv', 'a')
     f.write(f"{username}, {clock}\n")
     f.close()
-    send_log()
-
+    wait_hour()
+    
 
 def change():
     global new_name, new_lastname, new_address, new_phone, c_root
@@ -291,8 +315,11 @@ def change():
     c_send_button = tk.Button(c_root, text="Ändra uppgifter", command=send_change)
     c_send_button.grid(row=9, column=0, pady=10)
     
-    c_return_button = tk.Button(c_root, text="Tillbaka", command=exit) #Måste hitta ett sätt att kunna stänga change fönster utan att döda app.
+    c_return_button = tk.Button(c_root, text="Tillbaka", command=c_root.destroy)
     c_return_button.grid(row=10, column=0, pady=10)
+
+    c_del_button = tk.Button(c_root, text="Ta bort konto", command=delete)
+    c_del_button.grid(row=11, column=0, pady=10)
 
     new_name = c_surname_entry.get()
     new_lastname = c_lastname_entry.get()
@@ -332,11 +359,17 @@ def send_change():
     messagebox.showinfo("Information","Ändringarna gjorda!")
     return
 
+def wait_hour():
+    store_log()
 
+def run_schedule():
+    schedule.every().hour.do(wait_hour)
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
 
-
-def send_log():
-    #time.sleep(3600)
+def store_log(): #Stoppar in datan från log filen till databasen
+    
     conn = mysql.connector.connect(
     host="localhost",
     user="root",
@@ -346,19 +379,13 @@ def send_log():
     )
     cursor = conn.cursor()
     
-    # Create the 'log' table if it doesn't exist
-    cursor.execute("CREATE TABLE IF NOT EXISTS log (user VARCHAR(64), time VARCHAR(64))")
-    cursor.execute("SHOW TABLES")
-    cursor.fetchall()
-
-    # Open the log file
     with open("log_login.csv", "r") as file:
         # Iterate through each line in the log file and insert into the database
         for line in file:
-            user, time = line.strip().split(",")  # Assuming CSV format
-
+            user, entry_time = line.strip().split(",")
+            print(user,entry_time)
             # Use parameterized query to prevent SQL injection
-            cursor.execute("INSERT INTO log (user, time) VALUES (%s, %s)", (user, time))
+            cursor.execute("INSERT INTO log (user, entry_time) VALUES (%s, %s)", (user, entry_time))
 
     # Commit the changes
     conn.commit()
@@ -366,6 +393,8 @@ def send_log():
     # Close the database connection
     cursor.close()
     conn.close()
+    os.remove(log_login.csv) # REMOVE IF EXISTS
+
 
 
 def the_wall():
@@ -388,14 +417,67 @@ def insert_to_wall():
     messagebox.showinfo("Meddelande", "Meddelandet skickat till väggen!")
 
 def search():
+    global s_search_entry
+    s_root = tk.Tk()
+    s_root.geometry("600x500")
+    s_root.title("Sök på väggen")
+
+    s_title_label = tk.Label(s_root, text="Sök på väggen", font=("Arial",22))
+    s_title_label.grid(row=1, column=0, sticky="w", padx=10, pady=5)
+
+    # s_msg_label = tk.Label(s_root, text=your_string, font=("Arial", 16))
+    # s_msg_label.grid(row=2, column=0, sticky="w", padx=10, pady=5)
+
+    s_search_label = tk.Label(s_root, text="Sök på titel", font=("Arial",18))
+    s_search_label.grid(row=3, column=0, sticky="w", padx=10, pady=5)
+
+    s_search_entry = tk.Entry(s_root)
+    s_search_entry.grid(row=4, column=0, sticky="w", padx=10, pady=5)
+
+    s_search_button = tk.Button(s_root, text="Sök", command=show)
+    s_search_button.grid(row=5, column=0, sticky="w", padx=10, pady=5)
+    
+
+def show():
     myclient = pymongo.MongoClient("mongodb://localhost:27017")
     mydb = myclient["the_wall"]  
     mycol = mydb["the_wall_col"]
+    title = s_search_entry.get()
 
-    #lägg till så att "X" är titel på väggen
 
-    mycol.find_one(x)
-
+    query = {title: {"$exists": True}}
+    result = mycol.find_one(query)
     
+    if result:
+        result.pop('_id',None)
+        messagebox.showinfo("Resultat", result)
+        
+    else: messagebox.showerror("Alert", "Inget resultat hittades.")
+    
+    
+def delete():
+    erase = messagebox.askokcancel(title="Ta bort konto", message="Är du säker?")
+    if erase == True:
+        conn = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="password",
+        port=1000,
+        database = "de23db"
+        )
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET isActive = '0' WHERE username = %s", (username,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        w_root.destroy()
+        c_root.destroy()
+    elif erase == False:
+        pass
+
 if __name__ == '__main__':
     login_win()
+
+if __name__ == "__main__":
+    run_schedule()
