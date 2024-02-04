@@ -7,6 +7,7 @@ import schedule
 import time
 import pymongo
 import os
+import pandas as pd
 user_credentials = {}
 
 
@@ -98,6 +99,9 @@ def login_win():
     newUser_button = tk.Button(root, text="Inget konto?", command=main)
     newUser_button.grid(row=6, column=0, pady=10,padx=10, sticky="W")
 
+    search_wall_button = tk.Button(root, text="Sök", command=search)
+    search_wall_button.grid(row=7, column=0, pady=10,padx=10, sticky="W")
+
     # Start the Tkinter event loop
     root.mainloop()
     return
@@ -182,12 +186,6 @@ def user_cred():
     password = addPwd_entry.get()
     isActive = 1
 
-    print(surname)
-    print(lastname)
-    print(address)
-    print(phone)
-    print(username)
-    print(password)
     insert_to_db()
     m_root.destroy()
     
@@ -212,8 +210,6 @@ def insert_to_db():
     cursor.execute("SHOW TABLES")
     cursor.fetchall()
 
-    #cursor.execute(f"INSERT INTO users ( username, password) VALUES ('{username}', '{password}')")
-    #cursor.execute(f"INSERT INTO user_info ( surname, lastname, address, phone) VALUES ('{surname}', '{lastname}', '{address}', '{phone}')")
 
      # För att slippa bli SQL injekterad.
     user_query = "INSERT INTO users (username, password, isActive) VALUES (%s, %s, %s)"
@@ -271,10 +267,10 @@ def my_page():
 
 def log_login():
     clock = str(datetime.datetime.now())
-    f = open('log_login.csv', 'a')
+    f = open('log.csv', 'a')
     f.write(f"{username}, {clock}\n")
     f.close()
-    wait_hour()
+    store_log()
     
 
 def change():
@@ -359,10 +355,15 @@ def send_change():
     messagebox.showinfo("Information","Ändringarna gjorda!")
     return
 
-def wait_hour():
+def wait_hour(): 
+    excel()
     store_log()
+    file = "log.csv"
+    f = open(file, "w+")
+    f.close()
 
-def run_schedule():
+
+def run_schedule(): 
     schedule.every().hour.do(wait_hour)
     while True:
         schedule.run_pending()
@@ -379,7 +380,7 @@ def store_log(): #Stoppar in datan från log filen till databasen
     )
     cursor = conn.cursor()
     
-    with open("log_login.csv", "r") as file:
+    with open("log.csv", "r") as file:
         # Iterate through each line in the log file and insert into the database
         for line in file:
             user, entry_time = line.strip().split(",")
@@ -393,17 +394,17 @@ def store_log(): #Stoppar in datan från log filen till databasen
     # Close the database connection
     cursor.close()
     conn.close()
-    os.remove(log_login.csv) # REMOVE IF EXISTS
 
+    
+    
+       
 
 
 def the_wall():
-     global title, textbox_msg
+     global title, textbox_msg, postedBy
      title = w_title_entry.get()
+     postedBy = username
      textbox_msg = w_textbox.get("1.0", tk.END)
-     print(title)
-     print(textbox_msg)
-
      insert_to_wall()
 
 def insert_to_wall():
@@ -411,13 +412,13 @@ def insert_to_wall():
     mydb = myclient["the_wall"]
 
     mycol = mydb["the_wall_col"]
-    mydict = {title:textbox_msg}
+    mydict = {title:textbox_msg, 'user':postedBy}
 
     mycol.insert_one(mydict)
     messagebox.showinfo("Meddelande", "Meddelandet skickat till väggen!")
 
 def search():
-    global s_search_entry
+    global s_search_entry, s_search_user_entry
     s_root = tk.Tk()
     s_root.geometry("600x500")
     s_root.title("Sök på väggen")
@@ -429,22 +430,29 @@ def search():
     # s_msg_label.grid(row=2, column=0, sticky="w", padx=10, pady=5)
 
     s_search_label = tk.Label(s_root, text="Sök på titel", font=("Arial",18))
-    s_search_label.grid(row=3, column=0, sticky="w", padx=10, pady=5)
+    s_search_label.grid(row=2, column=0, sticky="w", padx=10, pady=5)
 
     s_search_entry = tk.Entry(s_root)
-    s_search_entry.grid(row=4, column=0, sticky="w", padx=10, pady=5)
+    s_search_entry.grid(row=3, column=0, sticky="w", padx=10, pady=5)
 
-    s_search_button = tk.Button(s_root, text="Sök", command=show)
-    s_search_button.grid(row=5, column=0, sticky="w", padx=10, pady=5)
+    s_search_user = tk.Label(s_root, text="Sök på användare", font=("Arial",18))
+    s_search_user.grid(row=4, column=0, sticky="w", padx=10, pady=5)
+
+    s_search_user_entry = tk.Entry(s_root)
+    s_search_user_entry.grid(row=5, column=0, sticky="w", padx=10, pady=5)
+
+    s_search_button = tk.Button(s_root, text="Sök på titel", command=show)
+    s_search_button.grid(row=6, column=0, sticky="w", padx=10, pady=5)
     
+    s_search_button = tk.Button(s_root, text="Sök på användare", command=ushow)
+    s_search_button.grid(row=6, column=1, padx=10, pady=5)
 
 def show():
     myclient = pymongo.MongoClient("mongodb://localhost:27017")
     mydb = myclient["the_wall"]  
     mycol = mydb["the_wall_col"]
     title = s_search_entry.get()
-
-
+    
     query = {title: {"$exists": True}}
     result = mycol.find_one(query)
     
@@ -453,7 +461,24 @@ def show():
         messagebox.showinfo("Resultat", result)
         
     else: messagebox.showerror("Alert", "Inget resultat hittades.")
+    myclient.close()
+
+def ushow():
+    myclient = pymongo.MongoClient("mongodb://localhost:27017")
+    mydb = myclient["the_wall"]  
+    mycol = mydb["the_wall_col"]
+    uuser = s_search_user_entry.get()
+
+    query = {"user":uuser}
     
+    count = mycol.count_documents(query)
+    
+    if count > 0:
+        messagebox.showinfo("Resultat", f"{uuser} har postat {count} inlägg.")
+    else:
+        messagebox.showerror("Alert", "Inget resultat hittades.")
+    myclient.close()
+
     
 def delete():
     erase = messagebox.askokcancel(title="Ta bort konto", message="Är du säker?")
@@ -475,6 +500,36 @@ def delete():
         c_root.destroy()
     elif erase == False:
         pass
+
+
+def excel():
+    # Read existing data from Excel file if it exists
+    file_path = r"C:\Users\Timot\Documents\Data Engineer 23\4.Programmering inom platform development\testfolder\log_info.xlsx"
+    try:
+        existing_df = pd.read_excel(file_path)
+    except FileNotFoundError:
+        existing_df = pd.DataFrame(columns=['year', 'month', 'day', 'hour', 'count'])
+
+    # Read CSV file and perform transformations
+    df = pd.read_csv("log.csv", header=None, names=['timestamp'])
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    df['year'] = df['timestamp'].dt.year
+    df['month'] = df['timestamp'].dt.month
+    df['day'] = df['timestamp'].dt.day
+    df['hour'] = df['timestamp'].dt.hour
+
+    # Count occurrences of each unique combination of 'year', 'month', 'day', 'hour'
+    count_df = df.groupby(['year', 'month', 'day', 'hour']).size().reset_index(name='count')
+
+    # Append new data to existing data
+    combined_df = pd.concat([existing_df, count_df], ignore_index=True)
+
+    # Save the updated data to Excel file
+    with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+        combined_df.to_excel(writer, index=False, sheet_name='Sheet1')
+
+
+
 
 if __name__ == '__main__':
     login_win()
