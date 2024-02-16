@@ -210,13 +210,19 @@ def insert_to_db():
     cursor.execute("SHOW TABLES")
     cursor.fetchall()
 
+    cursor.execute("SELECT * FROM users WHERE username = %s AND isActive = '1'", (username,))
+    exists = cursor.fetchone()
+    
+    if exists:
+        do_exist = exists[0]
+        if do_exist == username:
+            messagebox.showerror("Login Error", "Användarnamnet är upptaget! Välj ett annat.")
+        else:  # För att slippa bli SQL injekterad.
+            user_query = "INSERT INTO users (username, password, isActive) VALUES (%s, %s, %s)"
+            user_info_query = "INSERT INTO user_info (username, surname, lastname, address, phone) VALUES (%s, %s, %s, %s, %s)"
 
-     # För att slippa bli SQL injekterad.
-    user_query = "INSERT INTO users (username, password, isActive) VALUES (%s, %s, %s)"
-    user_info_query = "INSERT INTO user_info (username, surname, lastname, address, phone) VALUES (%s, %s, %s, %s, %s)"
-
-    cursor.execute(user_query, (username, password, isActive))
-    cursor.execute(user_info_query, (username, surname, lastname, address, phone))
+            cursor.execute(user_query, (username, password, isActive))
+            cursor.execute(user_info_query, (username, surname, lastname, address, phone))
 
     conn.commit()
 
@@ -244,7 +250,7 @@ def my_page():
     w_title_entry = tk.Entry(w_root)
     w_title_entry.grid(row=4, column=0,sticky="W",padx=20, pady=10)
 
-    w_msg_label = tk.Label(w_root, text="Meddelande", font=("Arial", 12))
+    w_msg_label = tk.Label(w_root, text="Meddelande, bild eller video", font=("Arial", 12))
     w_msg_label.grid(row=5, column=0,sticky="W", padx=10, pady=10)
 
     w_textbox= tk.Text(w_root, height=5, font=('Arial',12))
@@ -381,11 +387,10 @@ def store_log(): #Stoppar in datan från log filen till databasen
     cursor = conn.cursor()
     
     with open("log.csv", "r") as file:
-        # Iterate through each line in the log file and insert into the database
+        # Iterererar log filen och lägger in i DB
         for line in file:
             user, entry_time = line.strip().split(",")
-            print(user,entry_time)
-            # Use parameterized query to prevent SQL injection
+            # Använder placeholder för att inte bli SQL injekterad
             cursor.execute("INSERT INTO log (user, entry_time) VALUES (%s, %s)", (user, entry_time))
 
     # Commit the changes
@@ -420,22 +425,19 @@ def insert_to_wall():
 def search():
     global s_search_entry, s_search_user_entry
     s_root = tk.Tk()
-    s_root.geometry("600x500")
+    s_root.geometry("400x300")
     s_root.title("Sök på väggen")
 
     s_title_label = tk.Label(s_root, text="Sök på väggen", font=("Arial",22))
     s_title_label.grid(row=1, column=0, sticky="w", padx=10, pady=5)
 
-    # s_msg_label = tk.Label(s_root, text=your_string, font=("Arial", 16))
-    # s_msg_label.grid(row=2, column=0, sticky="w", padx=10, pady=5)
-
-    s_search_label = tk.Label(s_root, text="Sök på titel", font=("Arial",18))
+    s_search_label = tk.Label(s_root, text="Sök på titel", font=("Arial",12))
     s_search_label.grid(row=2, column=0, sticky="w", padx=10, pady=5)
 
     s_search_entry = tk.Entry(s_root)
     s_search_entry.grid(row=3, column=0, sticky="w", padx=10, pady=5)
 
-    s_search_user = tk.Label(s_root, text="Sök på användare", font=("Arial",18))
+    s_search_user = tk.Label(s_root, text="Sök på användare", font=("Arial",12))
     s_search_user.grid(row=4, column=0, sticky="w", padx=10, pady=5)
 
     s_search_user_entry = tk.Entry(s_root)
@@ -446,6 +448,9 @@ def search():
     
     s_search_button = tk.Button(s_root, text="Sök på användare", command=ushow)
     s_search_button.grid(row=6, column=1, padx=10, pady=5)
+
+    s_return_button = tk.Button(s_root, text="Tillbaka", command=s_root.destroy)
+    s_return_button.grid(row=7,sticky="w", column=0,padx=10, pady=10)
 
 def show():
     myclient = pymongo.MongoClient("mongodb://localhost:27017")
@@ -504,7 +509,9 @@ def delete():
 
 def excel():
     # Read existing data from Excel file if it exists
-    file_path = r"C:\Users\Timot\Documents\Data Engineer 23\4.Programmering inom platform development\testfolder\log_info.xlsx"
+    file_path = "log_info.xlsx"
+    
+
     try:
         existing_df = pd.read_excel(file_path)
     except FileNotFoundError:
@@ -536,3 +543,5 @@ if __name__ == '__main__':
 
 if __name__ == "__main__":
     run_schedule()
+
+    
