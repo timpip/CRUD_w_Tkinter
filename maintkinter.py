@@ -29,7 +29,7 @@ def create_db():
     password="password",
     port=1000,
     database="de23db")
-    
+
     cursor = conn.cursor()
     cursor.execute("CREATE TABLE IF NOT EXISTS users (username VARCHAR(64) PRIMARY KEY, password VARCHAR(64), isActive INT)")
     cursor.execute("CREATE TABLE IF NOT EXISTS user_info (username VARCHAR(64) PRIMARY KEY, surname VARCHAR(64), lastname VARCHAR(64), address VARCHAR(64), phone VARCHAR(64))")
@@ -234,6 +234,7 @@ def insert_to_db():
         cursor.execute(user_info_query, (username, surname, lastname, address, phone))
 
     conn.commit()
+    messagebox.showinfo("Grattis!", "Ditt konto är skapat!")
 
 def my_page():
     log_login()
