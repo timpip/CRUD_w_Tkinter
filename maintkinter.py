@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import messagebox
-from tkinter import scrolledtext
 import mysql.connector
 import datetime
 import schedule
@@ -24,6 +23,20 @@ def create_db():
     cursor.close()
     conn.close()
 
+    conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="password",
+    port=1000,
+    database="de23db")
+    
+    cursor = conn.cursor()
+    cursor.execute("CREATE TABLE IF NOT EXISTS users (username VARCHAR(64) PRIMARY KEY, password VARCHAR(64), isActive INT)")
+    cursor.execute("CREATE TABLE IF NOT EXISTS user_info (username VARCHAR(64) PRIMARY KEY, surname VARCHAR(64), lastname VARCHAR(64), address VARCHAR(64), phone VARCHAR(64))")
+    cursor.execute("CREATE TABLE IF NOT EXISTS log (user VARCHAR(64), entry_time VARCHAR(64))")
+    cursor.close()
+    conn.close()
+
 
 def login():
     global username, password
@@ -37,9 +50,7 @@ def login():
     elif password == "":
         messagebox.showerror('Python Error','Vänligen ange ett lösenord.')
     else:
-        #Verifiera att kunden finns i db.
-        verify_cred()
-        
+        verify_cred()  
     return
     
 def verify_cred():
@@ -48,8 +59,7 @@ def verify_cred():
         user="root",
         password="password",
         port=1000,
-        database="de23db"
-    )
+        database="de23db")
     
     cursor = conn.cursor()
 
@@ -67,7 +77,6 @@ def verify_cred():
     conn.close()
 
 def login_win():
-    create_db()
     global login_username_entry, login_password_entry, root
     # Create the login_win window
     root = tk.Tk()
@@ -217,12 +226,12 @@ def insert_to_db():
         do_exist = exists[0]
         if do_exist == username:
             messagebox.showerror("Login Error", "Användarnamnet är upptaget! Välj ett annat.")
-        else:  # För att slippa bli SQL injekterad.
-            user_query = "INSERT INTO users (username, password, isActive) VALUES (%s, %s, %s)"
-            user_info_query = "INSERT INTO user_info (username, surname, lastname, address, phone) VALUES (%s, %s, %s, %s, %s)"
+    else:  # För att slippa bli SQL injekterad.
+        user_query = "INSERT INTO users (username, password, isActive) VALUES (%s, %s, %s)"
+        user_info_query = "INSERT INTO user_info (username, surname, lastname, address, phone) VALUES (%s, %s, %s, %s, %s)"
 
-            cursor.execute(user_query, (username, password, isActive))
-            cursor.execute(user_info_query, (username, surname, lastname, address, phone))
+        cursor.execute(user_query, (username, password, isActive))
+        cursor.execute(user_info_query, (username, surname, lastname, address, phone))
 
     conn.commit()
 
@@ -539,6 +548,7 @@ def excel():
 
 
 if __name__ == '__main__':
+    create_db()
     login_win()
 
 if __name__ == "__main__":

@@ -5,3 +5,6 @@ information om kopplingen till mysql-databasen = mysql.connector.connect(
         port=1000,
         database="de23db"
     )
+
+Koppling till mongoDB:
+mongodb://localhost:27017
