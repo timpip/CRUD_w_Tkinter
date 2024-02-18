@@ -78,7 +78,7 @@ def verify_cred():
 
 def login_win():
     global login_username_entry, login_password_entry, root
-    # Create the login_win window
+    
     root = tk.Tk()
     root.geometry("300x300")
     root.title("Inloggning")
@@ -86,32 +86,27 @@ def login_win():
     title_label = tk.Label(root, text="DE23 Portalen!", font=("Arial",18))
     title_label.grid(row=0, column=0, sticky="w", padx=10, pady=5)
 
-    # Username Label and Entry
     login_username_label = tk.Label(root, text="Användarnamn:")
     login_username_label.grid(row=1, column=0, sticky="w", padx=10, pady=5)
 
     login_username_entry = tk.Entry(root)
     login_username_entry.grid(row=2, column=0, padx=10, pady=5)
 
-    # Password Label and Entry
     login_password_label = tk.Label(root, text="Lösenord:")
     login_password_label.grid(row=3, column=0, sticky="w", padx=10, pady=5)
 
-    login_password_entry = tk.Entry(root, show="*")  # Show asterisks to hide the password
+    login_password_entry = tk.Entry(root, show="*")  
     login_password_entry.grid(row=4, column=0, padx=10, pady=5)
 
-    # Login Button
     login_button = tk.Button(root, text="Logga in", command=login)
     login_button.grid(row=5, column=0, pady=10, padx=10, sticky="W")
 
-    # newUser Button
     newUser_button = tk.Button(root, text="Inget konto?", command=main)
     newUser_button.grid(row=6, column=0, pady=10,padx=10, sticky="W")
 
     search_wall_button = tk.Button(root, text="Sök", command=search)
     search_wall_button.grid(row=7, column=0, pady=10,padx=10, sticky="W")
 
-    # Start the Tkinter event loop
     root.mainloop()
     return
 
@@ -160,7 +155,7 @@ def main():
     addPwd_entry = tk.Entry(m_root, show="*")
     addPwd_entry.grid(row=4, column=1, padx=10, pady=5)
 
-    # Button
+    
     login_button = tk.Button(m_root, text="Skicka in uppgifter", command=verify_fill)
     login_button.grid(row=9, column=0, pady=10)
 
@@ -226,7 +221,7 @@ def insert_to_db():
         do_exist = exists[0]
         if do_exist == username:
             messagebox.showerror("Login Error", "Användarnamnet är upptaget! Välj ett annat.")
-    else:  # För att slippa bli SQL injekterad.
+    else: 
         user_query = "INSERT INTO users (username, password, isActive) VALUES (%s, %s, %s)"
         user_info_query = "INSERT INTO user_info (username, surname, lastname, address, phone) VALUES (%s, %s, %s, %s, %s)"
 
@@ -323,7 +318,7 @@ def change():
     c_phone_entry = tk.Entry(c_root)
     c_phone_entry.grid(row=8, column=0, padx=10, pady=5)
 
-    # Button
+    
     c_send_button = tk.Button(c_root, text="Ändra uppgifter", command=send_change)
     c_send_button.grid(row=9, column=0, pady=10)
     
@@ -385,7 +380,7 @@ def run_schedule():
         schedule.run_pending()
         time.sleep(1)
 
-def store_log(): #Stoppar in datan från log filen till databasen
+def store_log(): 
     
     conn = mysql.connector.connect(
     host="localhost",
@@ -397,16 +392,11 @@ def store_log(): #Stoppar in datan från log filen till databasen
     cursor = conn.cursor()
     
     with open("log.csv", "r") as file:
-        # Iterererar log filen och lägger in i DB
         for line in file:
             user, entry_time = line.strip().split(",")
-            # Använder placeholder för att inte bli SQL injekterad
             cursor.execute("INSERT INTO log (user, entry_time) VALUES (%s, %s)", (user, entry_time))
 
-    # Commit the changes
     conn.commit()
-
-    # Close the database connection
     cursor.close()
     conn.close()
 
@@ -518,7 +508,6 @@ def delete():
 
 
 def excel():
-    # Read existing data from Excel file if it exists
     file_path = "log_info.xlsx"
     
 
@@ -527,7 +516,6 @@ def excel():
     except FileNotFoundError:
         existing_df = pd.DataFrame(columns=['year', 'month', 'day', 'hour', 'count'])
 
-    # Read CSV file and perform transformations
     df = pd.read_csv("log.csv", header=None, names=['timestamp'])
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     df['year'] = df['timestamp'].dt.year
@@ -535,13 +523,10 @@ def excel():
     df['day'] = df['timestamp'].dt.day
     df['hour'] = df['timestamp'].dt.hour
 
-    # Count occurrences of each unique combination of 'year', 'month', 'day', 'hour'
     count_df = df.groupby(['year', 'month', 'day', 'hour']).size().reset_index(name='count')
 
-    # Append new data to existing data
     combined_df = pd.concat([existing_df, count_df], ignore_index=True)
 
-    # Save the updated data to Excel file
     with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
         combined_df.to_excel(writer, index=False, sheet_name='Sheet1')
 
